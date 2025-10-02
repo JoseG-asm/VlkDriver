@@ -254,6 +254,18 @@ namespace VulkanDispatcher::Device {
                 VkImageView                                 imageView,
                 const VkAllocationCallbacks*                pAllocator);
 
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_CreateShaderModule(
+                VkDevice                                    device,
+                const VkShaderModuleCreateInfo*             pCreateInfo,
+                const VkAllocationCallbacks*                pAllocator,
+                VkShaderModule*                             pShaderModule);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_DestroyShaderModule(
+                VkDevice                                    device,
+                VkShaderModule                              shaderModule,
+                const VkAllocationCallbacks*                pAllocator);
+
+
         static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vlk_trampoline_call_GetDeviceProcAddr(
                 VkDevice                                    device,
                 const char*                                 pName);

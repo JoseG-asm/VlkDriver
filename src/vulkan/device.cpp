@@ -107,6 +107,9 @@ void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyD
                  "vlk_trampoline_call_DestroyDevice called >>");
 
     auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+
 
     /**
     * destroy queues
@@ -144,6 +147,21 @@ void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyD
      */
     it_device->second->queries.clear();
     it_device->second->buffer_views.clear();
+
+    it_device->second->chain_image_views.clear();
+
+    if (it_device == vk_context->devices.end() && it_instance == vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyDevice = (PFN_vkDestroyDevice) func(it_device->second->dispatch_handle,
+                                                                                  "vkDestroyDevice");
+
+
+        if(func)
+            vkDestroyDevice(it_device->second->dispatch_handle, pAllocator);
+    }
+
 
     vk_context->devices.erase(it_device);
 }
@@ -882,7 +900,7 @@ VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateImageVi
     auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
     auto it_real_image_handle = it_device->second->chain_images.find(pCreateInfo->image);
 
-    if (it_device == vk_context->devices.end() && it_instance == vk_context->instances.end()) {
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
         auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
                 it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
         auto vkCreateImageView = (PFN_vkCreateImageView) func(
@@ -920,7 +938,7 @@ VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyImageV
     auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
     auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
 
-    if (it_device == vk_context->devices.end() && it_instance == vk_context->instances.end()) {
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
         auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
                 it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
         auto vkDestroyImageView = (PFN_vkDestroyImageView) func(
@@ -1529,7 +1547,7 @@ VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_GetImageSubre
     auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
     auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
 
-    if (it_device == vk_context->devices.end() && it_instance == vk_context->instances.end()) {
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
         auto it_image_real_handle = it_device->second->chain_images.find(image);
 
 
@@ -1546,6 +1564,52 @@ VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_GetImageSubre
 
 }
 
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateShaderModule(
+        VkDevice device, const VkShaderModuleCreateInfo *pCreateInfo,
+        const VkAllocationCallbacks *pAllocator, VkShaderModule *pShaderModule) {
+    /**
+      * get device and instance from handle
+      */
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreateShaderModule = (PFN_vkCreateShaderModule) func(it_device->second->dispatch_handle,
+                                                                    "vkCreateShaderModule");
+
+
+        if(func)
+            ret = vkCreateShaderModule(it_device->second->dispatch_handle, pCreateInfo, pAllocator, pShaderModule);
+    }
+
+    return ret;
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyShaderModule(
+        VkDevice device, VkShaderModule shaderModule, const VkAllocationCallbacks *pAllocator) {
+    /**
+      * get device and instance from handle
+      */
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyShaderModule = (PFN_vkDestroyShaderModule) func(it_device->second->dispatch_handle,
+                                                                      "vkDestroyShaderModule");
+
+
+        if(func)
+            vkDestroyShaderModule(it_device->second->dispatch_handle, shaderModule, pAllocator);
+    }
+
+}
 
 PFN_vkVoidFunction
 VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_GetDeviceProcAddr(
@@ -1681,8 +1745,11 @@ bool VulkanDispatcher::Device::DeviceDispatchTable::factory() {
 
     state = registerTrampoline("vkDestroyImageView", vlk_trampoline_call_DestroyImageView);
 
+    state = registerTrampoline("vkCreateShaderModule", vlk_trampoline_call_CreateShaderModule);
+
+    state = registerTrampoline("vkDestroyShaderModule", vlk_trampoline_call_DestroyShaderModule);
+
     state = registerTrampoline("vkGetDeviceProcAddr", vlk_trampoline_call_GetDeviceProcAddr);
 
     return state;
 }
-

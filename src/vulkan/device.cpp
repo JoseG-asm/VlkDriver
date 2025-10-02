@@ -1567,6 +1567,9 @@ VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_GetImageSubre
 VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateShaderModule(
         VkDevice device, const VkShaderModuleCreateInfo *pCreateInfo,
         const VkAllocationCallbacks *pAllocator, VkShaderModule *pShaderModule) {
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_CreateShaderModule called >>");
+
     /**
       * get device and instance from handle
       */
@@ -1591,6 +1594,9 @@ VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_Crea
 
 void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyShaderModule(
         VkDevice device, VkShaderModule shaderModule, const VkAllocationCallbacks *pAllocator) {
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_DestroyShaderModule called >>");
+
     /**
       * get device and instance from handle
       */
@@ -1609,6 +1615,251 @@ void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyS
             vkDestroyShaderModule(it_device->second->dispatch_handle, shaderModule, pAllocator);
     }
 
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreatePipelineCache(
+        VkDevice device, const VkPipelineCacheCreateInfo *pCreateInfo,
+        const VkAllocationCallbacks *pAllocator, VkPipelineCache *pPipelineCache) {
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_CreatePipelineCache called >>");
+
+    /**
+     * get device and instance from handle
+     */
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreatePipelineCache = (PFN_vkCreatePipelineCache) func(it_device->second->dispatch_handle,
+                                                                      "vkCreatePipelineCache");
+
+
+        if(func)
+            ret = vkCreatePipelineCache(it_device->second->dispatch_handle, pCreateInfo, pAllocator, pPipelineCache);
+    }
+
+    return ret;
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyPipelineCache(
+        VkDevice device, VkPipelineCache pipelineCache, const VkAllocationCallbacks *pAllocator) {
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_DestroyPipelineCache called >>");
+
+    /**
+     * get device and instance from handle
+     */
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyPipelineCache = (PFN_vkDestroyPipelineCache) func(it_device->second->dispatch_handle,
+                                                                      "vkDestroyPipelineCache");
+
+
+        if(func)
+            vkDestroyPipelineCache(it_device->second->dispatch_handle, pipelineCache, pAllocator);
+    }
+
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_GetPipelineCacheData(
+        VkDevice device, VkPipelineCache pipelineCache, size_t *pDataSize, void *pData) {
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_GetPipelineCacheData called >>");
+
+    /**
+     * get device and instance from handle
+     */
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkGetPipelineCacheData = (PFN_vkGetPipelineCacheData) func(it_device->second->dispatch_handle,
+                                                                      "vkGetPipelineCacheData");
+
+
+        if(func)
+            ret = vkGetPipelineCacheData(it_device->second->dispatch_handle, pipelineCache, pDataSize, pData);
+    }
+
+    return ret;
+}
+
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_MergePipelineCaches(
+        VkDevice device, VkPipelineCache dstCache, uint32_t srcCacheCount,
+        const VkPipelineCache *pSrcCaches) {
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_MergePipelineCaches called >>");
+
+    /**
+     * get device and instance from handle
+     */
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkMergePipelineCaches = (PFN_vkMergePipelineCaches) func(it_device->second->dispatch_handle,
+                                                                        "vkMergePipelineCaches");
+
+
+        if(func)
+            ret = vkMergePipelineCaches(it_device->second->dispatch_handle, dstCache, srcCacheCount, pSrcCaches);
+    }
+
+    return ret;
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateGraphicsPipelines(
+        VkDevice device, VkPipelineCache pipelineCache, uint32_t createInfoCount,
+        const VkGraphicsPipelineCreateInfo *pCreateInfos, const VkAllocationCallbacks *pAllocator,
+        VkPipeline *pPipelines) {
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_CreateGraphicsPipelines called >>");
+
+    /**
+     * get device and instance from handle
+     */
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreateGraphicsPipelines = (PFN_vkCreateGraphicsPipelines) func(it_device->second->dispatch_handle,
+                                                                      "vkCreateGraphicsPipelines");
+
+
+        if(func)
+            ret = vkCreateGraphicsPipelines(it_device->second->dispatch_handle, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
+    }
+
+    return ret;
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateComputePipelines(
+        VkDevice device, VkPipelineCache pipelineCache, uint32_t createInfoCount,
+        const VkComputePipelineCreateInfo *pCreateInfos, const VkAllocationCallbacks *pAllocator,
+        VkPipeline *pPipelines) {
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_CreateComputePipelines called >>");
+
+    /**
+     * get device and instance from handle
+     */
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreateComputePipelines = (PFN_vkCreateComputePipelines) func(it_device->second->dispatch_handle,
+                                                                              "vkCreateComputePipelines");
+
+
+        if(func)
+            ret = vkCreateComputePipelines(it_device->second->dispatch_handle, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
+    }
+
+    return ret;
+}
+
+void
+VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyPipeline(VkDevice device,
+                                                                                   VkPipeline pipeline,
+                                                                                   const VkAllocationCallbacks *pAllocator) {
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_DestroyPipeline called >>");
+
+    /**
+     * get device and instance from handle
+     */
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyPipeline = (PFN_vkDestroyPipeline) func(it_device->second->dispatch_handle,
+                                                                        "vkDestroyPipeline");
+
+
+        if(func)
+            vkDestroyPipeline(it_device->second->dispatch_handle, pipeline, pAllocator);
+    }
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreatePipelineLayout(
+        VkDevice device, const VkPipelineLayoutCreateInfo *pCreateInfo,
+        const VkAllocationCallbacks *pAllocator, VkPipelineLayout *pPipelineLayout) {
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_CreatePipelineLayout called >>");
+
+    /**
+     * get device and instance from handle
+     */
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreatePipelineLayout = (PFN_vkCreatePipelineLayout) func(it_device->second->dispatch_handle,
+                                                                            "vkCreatePipelineLayout");
+
+
+        if(func)
+            ret = vkCreatePipelineLayout(it_device->second->dispatch_handle, pCreateInfo, pAllocator, pPipelineLayout);
+    }
+
+    return ret;
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyPipelineLayout(
+        VkDevice device, VkPipelineLayout pipelineLayout, const VkAllocationCallbacks *pAllocator) {
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_DestroyPipeline called >>");
+
+    /**
+     * get device and instance from handle
+     */
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyPipelineLayout = (PFN_vkDestroyPipelineLayout) func(it_device->second->dispatch_handle,
+                                                              "vkDestroyPipelineLayout");
+
+
+        if(func)
+            vkDestroyPipelineLayout(it_device->second->dispatch_handle, pipelineLayout, pAllocator);
+    }
 }
 
 PFN_vkVoidFunction
@@ -1748,6 +1999,24 @@ bool VulkanDispatcher::Device::DeviceDispatchTable::factory() {
     state = registerTrampoline("vkCreateShaderModule", vlk_trampoline_call_CreateShaderModule);
 
     state = registerTrampoline("vkDestroyShaderModule", vlk_trampoline_call_DestroyShaderModule);
+
+    state = registerTrampoline("vkCreatePipelineCache", vlk_trampoline_call_CreatePipelineCache);
+
+    state = registerTrampoline("vkDestroyPipelineCache", vlk_trampoline_call_DestroyPipelineCache);
+
+    state = registerTrampoline("vkGetPipelineCacheData", vlk_trampoline_call_GetPipelineCacheData);
+
+    state = registerTrampoline("vkMergePipelineCaches", vlk_trampoline_call_MergePipelineCaches);
+
+    state = registerTrampoline("vkCreateGraphicsPipelines", vlk_trampoline_call_CreateGraphicsPipelines);
+
+    state = registerTrampoline("vkCreateComputePipelines", vlk_trampoline_call_CreateComputePipelines);
+
+    state = registerTrampoline("vkDestroyPipeline", vlk_trampoline_call_DestroyPipeline);
+
+    state = registerTrampoline("vkCreatePipelineLayout", vlk_trampoline_call_CreatePipelineLayout);
+
+    state = registerTrampoline("vkDestroyPipelineLayout", vlk_trampoline_call_DestroyPipelineLayout);
 
     state = registerTrampoline("vkGetDeviceProcAddr", vlk_trampoline_call_GetDeviceProcAddr);
 

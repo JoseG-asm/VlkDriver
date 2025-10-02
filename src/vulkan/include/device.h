@@ -265,6 +265,61 @@ namespace VulkanDispatcher::Device {
                 VkShaderModule                              shaderModule,
                 const VkAllocationCallbacks*                pAllocator);
 
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_CreatePipelineCache(
+                VkDevice                                    device,
+                const VkPipelineCacheCreateInfo*            pCreateInfo,
+                const VkAllocationCallbacks*                pAllocator,
+                VkPipelineCache*                            pPipelineCache);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_DestroyPipelineCache(
+                VkDevice                                    device,
+                VkPipelineCache                             pipelineCache,
+                const VkAllocationCallbacks*                pAllocator);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_GetPipelineCacheData(
+                VkDevice                                    device,
+                VkPipelineCache                             pipelineCache,
+                size_t*                                     pDataSize,
+                void*                                       pData);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_MergePipelineCaches(
+                VkDevice                                    device,
+        VkPipelineCache                             dstCache,
+                uint32_t                                    srcCacheCount,
+        const VkPipelineCache*                      pSrcCaches);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_CreateGraphicsPipelines(
+                VkDevice                                    device,
+                VkPipelineCache                             pipelineCache,
+                uint32_t                                    createInfoCount,
+                const VkGraphicsPipelineCreateInfo*         pCreateInfos,
+                const VkAllocationCallbacks*                pAllocator,
+                VkPipeline*                                 pPipelines);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_CreateComputePipelines(
+                VkDevice                                    device,
+                VkPipelineCache                             pipelineCache,
+                uint32_t                                    createInfoCount,
+                const VkComputePipelineCreateInfo*          pCreateInfos,
+                const VkAllocationCallbacks*                pAllocator,
+                VkPipeline*                                 pPipelines);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_DestroyPipeline(
+                VkDevice                                    device,
+                VkPipeline                                  pipeline,
+                const VkAllocationCallbacks*                pAllocator);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_CreatePipelineLayout(
+                VkDevice                                    device,
+                const VkPipelineLayoutCreateInfo*           pCreateInfo,
+                const VkAllocationCallbacks*                pAllocator,
+                VkPipelineLayout*                           pPipelineLayout);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_DestroyPipelineLayout(
+                VkDevice                                    device,
+                VkPipelineLayout                            pipelineLayout,
+                const VkAllocationCallbacks*                pAllocator);
+
 
         static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vlk_trampoline_call_GetDeviceProcAddr(
                 VkDevice                                    device,

@@ -1862,6 +1862,469 @@ void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyP
     }
 }
 
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateSampler(
+        VkDevice device,
+        const VkSamplerCreateInfo* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator,
+        VkSampler* pSampler)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_CreateSampler called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreateSampler = (PFN_vkCreateSampler) func(it_device->second->dispatch_handle,
+                                                          "vkCreateSampler");
+
+        if (vkCreateSampler)
+            ret = vkCreateSampler(it_device->second->dispatch_handle, pCreateInfo, pAllocator, pSampler);
+    }
+
+    return ret;
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroySampler(
+        VkDevice device,
+        VkSampler sampler,
+        const VkAllocationCallbacks* pAllocator)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_DestroySampler called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroySampler = (PFN_vkDestroySampler) func(it_device->second->dispatch_handle,
+                                                            "vkDestroySampler");
+
+        if (vkDestroySampler)
+            vkDestroySampler(it_device->second->dispatch_handle, sampler, pAllocator);
+    }
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateDescriptorSetLayout(
+        VkDevice device,
+        const VkDescriptorSetLayoutCreateInfo* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator,
+        VkDescriptorSetLayout* pSetLayout)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_CreateDescriptorSetLayout called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreateDescriptorSetLayout =
+                (PFN_vkCreateDescriptorSetLayout) func(it_device->second->dispatch_handle,
+                                                       "vkCreateDescriptorSetLayout");
+
+        if (vkCreateDescriptorSetLayout)
+            ret = vkCreateDescriptorSetLayout(it_device->second->dispatch_handle,
+                                              pCreateInfo, pAllocator, pSetLayout);
+    }
+
+    return ret;
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyDescriptorSetLayout(
+        VkDevice device,
+        VkDescriptorSetLayout descriptorSetLayout,
+        const VkAllocationCallbacks* pAllocator)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_DestroyDescriptorSetLayout called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyDescriptorSetLayout =
+                (PFN_vkDestroyDescriptorSetLayout) func(it_device->second->dispatch_handle,
+                                                        "vkDestroyDescriptorSetLayout");
+
+        if (vkDestroyDescriptorSetLayout)
+            vkDestroyDescriptorSetLayout(it_device->second->dispatch_handle, descriptorSetLayout, pAllocator);
+    }
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateDescriptorPool(
+        VkDevice device,
+        const VkDescriptorPoolCreateInfo* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator,
+        VkDescriptorPool* pDescriptorPool)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_CreateDescriptorPool called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreateDescriptorPool =
+                (PFN_vkCreateDescriptorPool) func(it_device->second->dispatch_handle,
+                                                  "vkCreateDescriptorPool");
+
+        if (vkCreateDescriptorPool)
+            ret = vkCreateDescriptorPool(it_device->second->dispatch_handle,
+                                         pCreateInfo, pAllocator, pDescriptorPool);
+    }
+
+    return ret;
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyDescriptorPool(
+        VkDevice device,
+        VkDescriptorPool descriptorPool,
+        const VkAllocationCallbacks* pAllocator)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_DestroyDescriptorPool called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyDescriptorPool =
+                (PFN_vkDestroyDescriptorPool) func(it_device->second->dispatch_handle,
+                                                   "vkDestroyDescriptorPool");
+
+        if (vkDestroyDescriptorPool)
+            vkDestroyDescriptorPool(it_device->second->dispatch_handle, descriptorPool, pAllocator);
+    }
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_ResetDescriptorPool(
+        VkDevice device,
+        VkDescriptorPool descriptorPool,
+        VkDescriptorPoolResetFlags flags)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_ResetDescriptorPool called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkResetDescriptorPool =
+                (PFN_vkResetDescriptorPool) func(it_device->second->dispatch_handle,
+                                                 "vkResetDescriptorPool");
+
+        if (vkResetDescriptorPool)
+            ret = vkResetDescriptorPool(it_device->second->dispatch_handle,
+                                        descriptorPool, flags);
+    }
+
+    return ret;
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_AllocateDescriptorSets(
+        VkDevice device,
+        const VkDescriptorSetAllocateInfo* pAllocateInfo,
+        VkDescriptorSet* pDescriptorSets)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_AllocateDescriptorSets called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkAllocateDescriptorSets =
+                (PFN_vkAllocateDescriptorSets) func(it_device->second->dispatch_handle,
+                                                    "vkAllocateDescriptorSets");
+
+        if (vkAllocateDescriptorSets)
+            ret = vkAllocateDescriptorSets(it_device->second->dispatch_handle,
+                                           pAllocateInfo, pDescriptorSets);
+    }
+
+    return ret;
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_FreeDescriptorSets(
+        VkDevice device,
+        VkDescriptorPool descriptorPool,
+        uint32_t descriptorSetCount,
+        const VkDescriptorSet* pDescriptorSets)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_FreeDescriptorSets called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkFreeDescriptorSets =
+                (PFN_vkFreeDescriptorSets) func(it_device->second->dispatch_handle,
+                                                "vkFreeDescriptorSets");
+
+        if (vkFreeDescriptorSets)
+            ret = vkFreeDescriptorSets(it_device->second->dispatch_handle,
+                                       descriptorPool, descriptorSetCount, pDescriptorSets);
+    }
+
+    return ret;
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_UpdateDescriptorSets(
+        VkDevice device,
+        uint32_t descriptorWriteCount,
+        const VkWriteDescriptorSet* pDescriptorWrites,
+        uint32_t descriptorCopyCount,
+        const VkCopyDescriptorSet* pDescriptorCopies)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_UpdateDescriptorSets called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkUpdateDescriptorSets =
+                (PFN_vkUpdateDescriptorSets) func(it_device->second->dispatch_handle,
+                                                  "vkUpdateDescriptorSets");
+
+        if (vkUpdateDescriptorSets)
+            vkUpdateDescriptorSets(it_device->second->dispatch_handle,
+                                   descriptorWriteCount, pDescriptorWrites,
+                                   descriptorCopyCount, pDescriptorCopies);
+    }
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateFramebuffer(
+        VkDevice device,
+        const VkFramebufferCreateInfo* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator,
+        VkFramebuffer* pFramebuffer)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_CreateFramebuffer called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreateFramebuffer =
+                (PFN_vkCreateFramebuffer) func(it_device->second->dispatch_handle,
+                                               "vkCreateFramebuffer");
+
+        if (vkCreateFramebuffer)
+            ret = vkCreateFramebuffer(it_device->second->dispatch_handle,
+                                      pCreateInfo, pAllocator, pFramebuffer);
+    }
+
+    return ret;
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyFramebuffer(
+        VkDevice device,
+        VkFramebuffer framebuffer,
+        const VkAllocationCallbacks* pAllocator)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_DestroyFramebuffer called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyFramebuffer =
+                (PFN_vkDestroyFramebuffer) func(it_device->second->dispatch_handle,
+                                                "vkDestroyFramebuffer");
+
+        if (vkDestroyFramebuffer)
+            vkDestroyFramebuffer(it_device->second->dispatch_handle, framebuffer, pAllocator);
+    }
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateRenderPass(
+        VkDevice device,
+        const VkRenderPassCreateInfo* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator,
+        VkRenderPass* pRenderPass)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_CreateRenderPass called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreateRenderPass =
+                (PFN_vkCreateRenderPass) func(it_device->second->dispatch_handle,
+                                              "vkCreateRenderPass");
+
+        if (vkCreateRenderPass)
+            ret = vkCreateRenderPass(it_device->second->dispatch_handle,
+                                     pCreateInfo, pAllocator, pRenderPass);
+    }
+
+    return ret;
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyRenderPass(
+        VkDevice device,
+        VkRenderPass renderPass,
+        const VkAllocationCallbacks* pAllocator)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_DestroyRenderPass called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyRenderPass =
+                (PFN_vkDestroyRenderPass) func(it_device->second->dispatch_handle,
+                                               "vkDestroyRenderPass");
+
+        if (vkDestroyRenderPass)
+            vkDestroyRenderPass(it_device->second->dispatch_handle, renderPass, pAllocator);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_GetRenderAreaGranularity(
+        VkDevice device,
+        VkRenderPass renderPass,
+        VkExtent2D* pGranularity)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_GetRenderAreaGranularity called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkGetRenderAreaGranularity =
+                (PFN_vkGetRenderAreaGranularity) func(it_device->second->dispatch_handle,
+                                                      "vkGetRenderAreaGranularity");
+
+        if (vkGetRenderAreaGranularity)
+            vkGetRenderAreaGranularity(it_device->second->dispatch_handle, renderPass, pGranularity);
+    }
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateCommandPool(
+        VkDevice device,
+        const VkCommandPoolCreateInfo* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator,
+        VkCommandPool* pCommandPool)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_CreateCommandPool called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreateCommandPool =
+                (PFN_vkCreateCommandPool) func(it_device->second->dispatch_handle,
+                                               "vkCreateCommandPool");
+
+        if (vkCreateCommandPool)
+            ret = vkCreateCommandPool(it_device->second->dispatch_handle,
+                                      pCreateInfo, pAllocator, pCommandPool);
+    }
+
+    return ret;
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyCommandPool(
+        VkDevice device,
+        VkCommandPool commandPool,
+        const VkAllocationCallbacks* pAllocator)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_DestroyCommandPool called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyCommandPool =
+                (PFN_vkDestroyCommandPool) func(it_device->second->dispatch_handle,
+                                                "vkDestroyCommandPool");
+
+        if (vkDestroyCommandPool)
+            vkDestroyCommandPool(it_device->second->dispatch_handle, commandPool, pAllocator);
+    }
+}
+
+VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_ResetCommandPool(
+        VkDevice device,
+        VkCommandPool commandPool,
+        VkCommandPoolResetFlags flags)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_ResetCommandPool called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkResetCommandPool =
+                (PFN_vkResetCommandPool) func(it_device->second->dispatch_handle,
+                                              "vkResetCommandPool");
+
+        if (vkResetCommandPool)
+            ret = vkResetCommandPool(it_device->second->dispatch_handle,
+                                     commandPool, flags);
+    }
+
+    return ret;
+}
+
+
 PFN_vkVoidFunction
 VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_GetDeviceProcAddr(
         VkDevice device, const char *pName) {
@@ -1905,120 +2368,133 @@ bool VulkanDispatcher::Device::DeviceDispatchTable::factory() {
      * device functions
      */
     state = registerTrampoline("vkCreateDevice", vlk_trampoline_call_CreateDevice);
-
     state = registerTrampoline("vkDestroyDevice", vlk_trampoline_call_DestroyDevice);
-
     state = registerTrampoline("vkGetDeviceQueue", vlk_trampoline_call_GetDeviceQueue);
-
+    state = registerTrampoline("vkDeviceWaitIdle", vlk_trampoline_call_DeviceWaitIdle);
     state = registerTrampoline("vkQueueSubmit", vlk_trampoline_call_QueueSubmit);
-
     state = registerTrampoline("vkQueueWaitIdle", vlk_trampoline_call_QueueWaitIdle);
 
-    state = registerTrampoline("vkDeviceWaitIdle", vlk_trampoline_call_DeviceWaitIdle);
-
+    /**
+     * memory functions
+     */
     state = registerTrampoline("vkAllocateMemory", vlk_trampoline_call_AllocateMemory);
-
-    state = registerTrampoline("vkMapMemory", vlk_trampoline_call_MapMemory);
-
     state = registerTrampoline("vkFreeMemory", vlk_trampoline_call_FreeMemory);
-
+    state = registerTrampoline("vkMapMemory", vlk_trampoline_call_MapMemory);
     state = registerTrampoline("vkUnmapMemory", vlk_trampoline_call_UnmapMemory);
+    state = registerTrampoline("vkFlushMappedMemoryRanges", vlk_trampoline_call_FlushMappedMemoryRanges);
+    state = registerTrampoline("vkInvalidateMappedMemoryRanges", vlk_trampoline_call_InvalidateMappedMemoryRanges);
+    state = registerTrampoline("vkGetDeviceMemoryCommitment", vlk_trampoline_call_GetDeviceMemoryCommitment);
 
-    state = registerTrampoline("vkFlushMappedMemoryRanges",
-                               vlk_trampoline_call_FlushMappedMemoryRanges);
-
-    state = registerTrampoline("vkInvalidateMappedMemoryRanges",
-                               vlk_trampoline_call_InvalidateMappedMemoryRanges);
-
-    state = registerTrampoline("vkGetDeviceMemoryCommitment",
-                               vlk_trampoline_call_GetDeviceMemoryCommitment);
-
+    /**
+     * buffer functions
+     */
     state = registerTrampoline("vkCreateBuffer", vlk_trampoline_call_CreateBuffer);
-
     state = registerTrampoline("vkDestroyBuffer", vlk_trampoline_call_DestroyBuffer);
-
     state = registerTrampoline("vkBindBufferMemory", vlk_trampoline_call_BindBufferMemory);
+    state = registerTrampoline("vkGetBufferMemoryRequirements", vlk_trampoline_call_GetBufferMemoryRequirements);
+    state = registerTrampoline("vkCreateBufferView", vlk_trampoline_call_CreateBufferView);
+    state = registerTrampoline("vkDestroyBufferView", vlk_trampoline_call_DestroyBufferView);
 
+    /**
+     * image functions
+     */
     state = registerTrampoline("vkCreateImage", vlk_trampoline_call_CreateImage);
-
     state = registerTrampoline("vkDestroyImage", vlk_trampoline_call_DestroyImage);
-
     state = registerTrampoline("vkBindImageMemory", vlk_trampoline_call_BindImageMemory);
+    state = registerTrampoline("vkGetImageMemoryRequirements", vlk_trampoline_call_GetImageMemoryRequirements);
+    state = registerTrampoline("vkGetImageSparseMemoryRequirements", vlk_trampoline_call_GetImageSparseMemoryRequirements);
+    state = registerTrampoline("vkGetImageSubresourceLayout", vlk_trampoline_call_GetImageSubresourceLayout);
+    state = registerTrampoline("vkCreateImageView", vlk_trampoline_call_CreateImageView);
+    state = registerTrampoline("vkDestroyImageView", vlk_trampoline_call_DestroyImageView);
 
-    state = registerTrampoline("vkGetBufferMemoryRequirements",
-                               vlk_trampoline_call_GetBufferMemoryRequirements);
-
-    state = registerTrampoline("vkGetImageMemoryRequirements",
-                               vlk_trampoline_call_GetImageMemoryRequirements);
-
-    state = registerTrampoline("vkGetImageSparseMemoryRequirements",
-                               vlk_trampoline_call_GetImageSparseMemoryRequirements);
-
+    /**
+     * queue / sparse functions
+     */
     state = registerTrampoline("vkQueueBindSparse", vlk_trampoline_call_QueueBindSparse);
 
+    /**
+     * sync objects (fence, semaphore, event)
+     */
     state = registerTrampoline("vkCreateFence", vlk_trampoline_call_CreateFence);
-
     state = registerTrampoline("vkDestroyFence", vlk_trampoline_call_DestroyFence);
-
     state = registerTrampoline("vkResetFences", vlk_trampoline_call_ResetFences);
-
     state = registerTrampoline("vkGetFenceStatus", vlk_trampoline_call_GetFenceStatus);
-
     state = registerTrampoline("vkWaitForFences", vlk_trampoline_call_WaitForFences);
 
     state = registerTrampoline("vkCreateSemaphore", vlk_trampoline_call_CreateSemaphore);
-
     state = registerTrampoline("vkDestroySemaphore", vlk_trampoline_call_DestroySemaphore);
 
     state = registerTrampoline("vkCreateEvent", vlk_trampoline_call_CreateEvent);
-
     state = registerTrampoline("vkDestroyEvent", vlk_trampoline_call_DestroyEvent);
-
     state = registerTrampoline("vkGetEventStatus", vlk_trampoline_call_GetEventStatus);
-
     state = registerTrampoline("vkSetEvent", vlk_trampoline_call_SetEvent);
-
     state = registerTrampoline("vkResetEvent", vlk_trampoline_call_ResetEvent);
 
+    /**
+     * query pool
+     */
     state = registerTrampoline("vkCreateQueryPool", vlk_trampoline_call_CreateQueryPool);
-
     state = registerTrampoline("vkDestroyQueryPool", vlk_trampoline_call_DestroyQueryPool);
-
     state = registerTrampoline("vkGetQueryPoolResults", vlk_trampoline_call_GetQueryPoolResults);
 
-    state = registerTrampoline("vkCreateBufferView", vlk_trampoline_call_CreateBufferView);
-
-    state = registerTrampoline("vkDestroyBufferView", vlk_trampoline_call_DestroyBufferView);
-
-    state = registerTrampoline("vkGetImageSubresourceLayout", vlk_trampoline_call_GetImageSubresourceLayout);
-
-    state = registerTrampoline("vkCreateImageView", vlk_trampoline_call_CreateImageView);
-
-    state = registerTrampoline("vkDestroyImageView", vlk_trampoline_call_DestroyImageView);
-
+    /**
+     * shader functions
+     */
     state = registerTrampoline("vkCreateShaderModule", vlk_trampoline_call_CreateShaderModule);
-
     state = registerTrampoline("vkDestroyShaderModule", vlk_trampoline_call_DestroyShaderModule);
 
+    /**
+     * pipeline functions
+     */
     state = registerTrampoline("vkCreatePipelineCache", vlk_trampoline_call_CreatePipelineCache);
-
     state = registerTrampoline("vkDestroyPipelineCache", vlk_trampoline_call_DestroyPipelineCache);
-
     state = registerTrampoline("vkGetPipelineCacheData", vlk_trampoline_call_GetPipelineCacheData);
-
     state = registerTrampoline("vkMergePipelineCaches", vlk_trampoline_call_MergePipelineCaches);
-
     state = registerTrampoline("vkCreateGraphicsPipelines", vlk_trampoline_call_CreateGraphicsPipelines);
-
     state = registerTrampoline("vkCreateComputePipelines", vlk_trampoline_call_CreateComputePipelines);
-
     state = registerTrampoline("vkDestroyPipeline", vlk_trampoline_call_DestroyPipeline);
-
     state = registerTrampoline("vkCreatePipelineLayout", vlk_trampoline_call_CreatePipelineLayout);
-
     state = registerTrampoline("vkDestroyPipelineLayout", vlk_trampoline_call_DestroyPipelineLayout);
 
+    /**
+     * sampler
+     */
+    state = registerTrampoline("vkCreateSampler", vlk_trampoline_call_CreateSampler);
+    state = registerTrampoline("vkDestroySampler", vlk_trampoline_call_DestroySampler);
+
+    /**
+     * descriptor set/layout functions
+     */
+    state = registerTrampoline("vkCreateDescriptorSetLayout", vlk_trampoline_call_CreateDescriptorSetLayout);
+    state = registerTrampoline("vkDestroyDescriptorSetLayout", vlk_trampoline_call_DestroyDescriptorSetLayout);
+    state = registerTrampoline("vkCreateDescriptorPool", vlk_trampoline_call_CreateDescriptorPool);
+    state = registerTrampoline("vkDestroyDescriptorPool", vlk_trampoline_call_DestroyDescriptorPool);
+    state = registerTrampoline("vkResetDescriptorPool", vlk_trampoline_call_ResetDescriptorPool);
+    state = registerTrampoline("vkAllocateDescriptorSets", vlk_trampoline_call_AllocateDescriptorSets);
+    state = registerTrampoline("vkFreeDescriptorSets", vlk_trampoline_call_FreeDescriptorSets);
+    state = registerTrampoline("vkUpdateDescriptorSets", vlk_trampoline_call_UpdateDescriptorSets);
+
+    /**
+     * framebuffer / renderpass
+     */
+    state = registerTrampoline("vkCreateFramebuffer", vlk_trampoline_call_CreateFramebuffer);
+    state = registerTrampoline("vkDestroyFramebuffer", vlk_trampoline_call_DestroyFramebuffer);
+    state = registerTrampoline("vkCreateRenderPass", vlk_trampoline_call_CreateRenderPass);
+    state = registerTrampoline("vkDestroyRenderPass", vlk_trampoline_call_DestroyRenderPass);
+    state = registerTrampoline("vkGetRenderAreaGranularity", vlk_trampoline_call_GetRenderAreaGranularity);
+
+    /**
+     * command pool
+     */
+    state = registerTrampoline("vkCreateCommandPool", vlk_trampoline_call_CreateCommandPool);
+    state = registerTrampoline("vkDestroyCommandPool", vlk_trampoline_call_DestroyCommandPool);
+    state = registerTrampoline("vkResetCommandPool", vlk_trampoline_call_ResetCommandPool);
+
+    /**
+     * core
+     */
     state = registerTrampoline("vkGetDeviceProcAddr", vlk_trampoline_call_GetDeviceProcAddr);
+
 
     return state;
 }

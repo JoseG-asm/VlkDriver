@@ -321,6 +321,106 @@ namespace VulkanDispatcher::Device {
                 const VkAllocationCallbacks*                pAllocator);
 
 
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_CreateSampler(
+                VkDevice device,
+                const VkSamplerCreateInfo* pCreateInfo,
+                const VkAllocationCallbacks* pAllocator,
+                VkSampler* pSampler);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_DestroySampler(
+                VkDevice device,
+                VkSampler sampler,
+                const VkAllocationCallbacks* pAllocator);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_CreateDescriptorSetLayout(
+                VkDevice device,
+                const VkDescriptorSetLayoutCreateInfo* pCreateInfo,
+                const VkAllocationCallbacks* pAllocator,
+                VkDescriptorSetLayout* pSetLayout);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_DestroyDescriptorSetLayout(
+                VkDevice device,
+                VkDescriptorSetLayout descriptorSetLayout,
+                const VkAllocationCallbacks* pAllocator);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_CreateDescriptorPool(
+                VkDevice device,
+                const VkDescriptorPoolCreateInfo* pCreateInfo,
+                const VkAllocationCallbacks* pAllocator,
+                VkDescriptorPool* pDescriptorPool);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_DestroyDescriptorPool(
+                VkDevice device,
+                VkDescriptorPool descriptorPool,
+                const VkAllocationCallbacks* pAllocator);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_ResetDescriptorPool(
+                VkDevice device,
+                VkDescriptorPool descriptorPool,
+                VkDescriptorPoolResetFlags flags);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_AllocateDescriptorSets(
+                VkDevice device,
+                const VkDescriptorSetAllocateInfo* pAllocateInfo,
+                VkDescriptorSet* pDescriptorSets);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_FreeDescriptorSets(
+                VkDevice device,
+                VkDescriptorPool descriptorPool,
+                uint32_t descriptorSetCount,
+                const VkDescriptorSet* pDescriptorSets);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_UpdateDescriptorSets(
+                VkDevice device,
+                uint32_t descriptorWriteCount,
+                const VkWriteDescriptorSet* pDescriptorWrites,
+                uint32_t descriptorCopyCount,
+                const VkCopyDescriptorSet* pDescriptorCopies);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_CreateFramebuffer(
+                VkDevice device,
+                const VkFramebufferCreateInfo* pCreateInfo,
+                const VkAllocationCallbacks* pAllocator,
+                VkFramebuffer* pFramebuffer);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_DestroyFramebuffer(
+                VkDevice device,
+                VkFramebuffer framebuffer,
+                const VkAllocationCallbacks* pAllocator);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_CreateRenderPass(
+                VkDevice device,
+                const VkRenderPassCreateInfo* pCreateInfo,
+                const VkAllocationCallbacks* pAllocator,
+                VkRenderPass* pRenderPass);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_DestroyRenderPass(
+                VkDevice device,
+                VkRenderPass renderPass,
+                const VkAllocationCallbacks* pAllocator);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_GetRenderAreaGranularity(
+                VkDevice device,
+                VkRenderPass renderPass,
+                VkExtent2D* pGranularity);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_CreateCommandPool(
+                VkDevice device,
+                const VkCommandPoolCreateInfo* pCreateInfo,
+                const VkAllocationCallbacks* pAllocator,
+                VkCommandPool* pCommandPool);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_DestroyCommandPool(
+                VkDevice device,
+                VkCommandPool commandPool,
+                const VkAllocationCallbacks* pAllocator);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_ResetCommandPool(
+                VkDevice device,
+                VkCommandPool commandPool,
+                VkCommandPoolResetFlags flags);
+
+
         static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vlk_trampoline_call_GetDeviceProcAddr(
                 VkDevice                                    device,
                 const char*                                 pName);

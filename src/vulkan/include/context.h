@@ -224,6 +224,8 @@ namespace VulkanContext {
          */
         class VkBufferObject {
         public:
+            VkBuffer dispatch_handle;
+
             VkDeviceSize size = 0;
             VkBufferUsageFlags usage = 0;
             VkSharingMode sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -256,7 +258,6 @@ namespace VulkanContext {
         };
 
         std::unordered_map<VkBufferView, VkBufferViewObject> buffer_views;
-        uint64_t buffer_views_handler_id{1};
 
         /**
          * device images
@@ -319,6 +320,7 @@ namespace VulkanContext {
          */
         struct VkEventObject {
             std::atomic<VkBool32> signaled;
+            VkEvent dispatch_handle;
 
             VkEventObject() : signaled(VK_FALSE) {}
         };

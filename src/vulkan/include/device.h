@@ -420,6 +420,323 @@ namespace VulkanDispatcher::Device {
                 VkCommandPool commandPool,
                 VkCommandPoolResetFlags flags);
 
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_AllocateCommandBuffers(
+                VkDevice                                    device,
+                const VkCommandBufferAllocateInfo*          pAllocateInfo,
+                VkCommandBuffer*                            pCommandBuffers);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_FreeCommandBuffers(
+                VkDevice                                    device,
+                VkCommandPool                               commandPool,
+                uint32_t                                    commandBufferCount,
+                const VkCommandBuffer*                      pCommandBuffers);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_BeginCommandBuffer(
+                VkCommandBuffer                             commandBuffer,
+                const VkCommandBufferBeginInfo*             pBeginInfo);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_EndCommandBuffer(
+                VkCommandBuffer                             commandBuffer);
+
+        static VKAPI_ATTR VkResult VKAPI_CALL vlk_trampoline_call_ResetCommandBuffer(
+                VkCommandBuffer                             commandBuffer,
+                VkCommandBufferResetFlags                   flags);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdBindPipeline(
+                VkCommandBuffer commandBuffer,
+                VkPipelineBindPoint pipelineBindPoint,
+                VkPipeline pipeline);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdSetViewport(
+                VkCommandBuffer commandBuffer,
+                uint32_t firstViewport,
+                uint32_t viewportCount,
+                const VkViewport* pViewports);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdSetScissor(
+                VkCommandBuffer commandBuffer,
+                uint32_t firstScissor,
+                uint32_t scissorCount,
+                const VkRect2D* pScissors);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdSetLineWidth(
+                VkCommandBuffer commandBuffer,
+                float lineWidth);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdSetDepthBias(
+                VkCommandBuffer commandBuffer,
+                float depthBiasConstantFactor,
+                float depthBiasClamp,
+                float depthBiasSlopeFactor);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdSetBlendConstants(
+                VkCommandBuffer commandBuffer,
+                const float blendConstants[4]);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdSetDepthBounds(
+                VkCommandBuffer commandBuffer,
+                float minDepthBounds,
+                float maxDepthBounds);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdSetStencilCompareMask(
+                VkCommandBuffer commandBuffer,
+                VkStencilFaceFlags faceMask,
+                uint32_t compareMask);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdSetStencilWriteMask(
+                VkCommandBuffer commandBuffer,
+                VkStencilFaceFlags faceMask,
+                uint32_t writeMask);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdSetStencilReference(
+                VkCommandBuffer commandBuffer,
+                VkStencilFaceFlags faceMask,
+                uint32_t reference);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdBindDescriptorSets(
+                VkCommandBuffer commandBuffer,
+                VkPipelineBindPoint pipelineBindPoint,
+                VkPipelineLayout layout,
+                uint32_t firstSet,
+                uint32_t descriptorSetCount,
+                const VkDescriptorSet* pDescriptorSets,
+                uint32_t dynamicOffsetCount,
+                const uint32_t* pDynamicOffsets);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdBindIndexBuffer(
+                VkCommandBuffer commandBuffer,
+                VkBuffer buffer,
+                VkDeviceSize offset,
+                VkIndexType indexType);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdBindVertexBuffers(
+                VkCommandBuffer commandBuffer,
+                uint32_t firstBinding,
+                uint32_t bindingCount,
+                const VkBuffer* pBuffers,
+                const VkDeviceSize* pOffsets);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdDraw(
+                VkCommandBuffer commandBuffer,
+                uint32_t vertexCount,
+                uint32_t instanceCount,
+                uint32_t firstVertex,
+                uint32_t firstInstance);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdDrawIndexed(
+                VkCommandBuffer commandBuffer,
+                uint32_t indexCount,
+                uint32_t instanceCount,
+                uint32_t firstIndex,
+                int32_t vertexOffset,
+                uint32_t firstInstance);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdDrawIndirect(
+                VkCommandBuffer commandBuffer,
+                VkBuffer buffer,
+                VkDeviceSize offset,
+                uint32_t drawCount,
+                uint32_t stride);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdDrawIndexedIndirect(
+                VkCommandBuffer commandBuffer,
+                VkBuffer buffer,
+                VkDeviceSize offset,
+                uint32_t drawCount,
+                uint32_t stride);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdDispatch(
+                VkCommandBuffer commandBuffer,
+                uint32_t groupCountX,
+                uint32_t groupCountY,
+                uint32_t groupCountZ);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdDispatchIndirect(
+                VkCommandBuffer commandBuffer,
+                VkBuffer buffer,
+                VkDeviceSize offset);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdCopyBuffer(
+                VkCommandBuffer commandBuffer,
+                VkBuffer srcBuffer,
+                VkBuffer dstBuffer,
+                uint32_t regionCount,
+                const VkBufferCopy* pRegions);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdCopyImage(
+                VkCommandBuffer commandBuffer,
+                VkImage srcImage,
+                VkImageLayout srcImageLayout,
+                VkImage dstImage,
+                VkImageLayout dstImageLayout,
+                uint32_t regionCount,
+                const VkImageCopy* pRegions);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdBlitImage(
+                VkCommandBuffer commandBuffer,
+                VkImage srcImage,
+                VkImageLayout srcImageLayout,
+                VkImage dstImage,
+                VkImageLayout dstImageLayout,
+                uint32_t regionCount,
+                const VkImageBlit* pRegions,
+                VkFilter filter);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdCopyBufferToImage(
+                VkCommandBuffer commandBuffer,
+                VkBuffer srcBuffer,
+                VkImage dstImage,
+                VkImageLayout dstImageLayout,
+                uint32_t regionCount,
+                const VkBufferImageCopy* pRegions);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdCopyImageToBuffer(
+                VkCommandBuffer commandBuffer,
+                VkImage srcImage,
+                VkImageLayout srcImageLayout,
+                VkBuffer dstBuffer,
+                uint32_t regionCount,
+                const VkBufferImageCopy* pRegions);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdUpdateBuffer(
+                VkCommandBuffer commandBuffer,
+                VkBuffer dstBuffer,
+                VkDeviceSize dstOffset,
+                VkDeviceSize dataSize,
+                const void* pData);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdFillBuffer(
+                VkCommandBuffer commandBuffer,
+                VkBuffer dstBuffer,
+                VkDeviceSize dstOffset,
+                VkDeviceSize size,
+                uint32_t data);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdClearColorImage(
+                VkCommandBuffer commandBuffer,
+                VkImage image,
+                VkImageLayout imageLayout,
+                const VkClearColorValue* pColor,
+                uint32_t rangeCount,
+                const VkImageSubresourceRange* pRanges);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdClearDepthStencilImage(
+                VkCommandBuffer commandBuffer,
+                VkImage image,
+                VkImageLayout imageLayout,
+                const VkClearDepthStencilValue* pDepthStencil,
+                uint32_t rangeCount,
+                const VkImageSubresourceRange* pRanges);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdClearAttachments(
+                VkCommandBuffer commandBuffer,
+                uint32_t attachmentCount,
+                const VkClearAttachment* pAttachments,
+                uint32_t rectCount,
+                const VkClearRect* pRects);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdResolveImage(
+                VkCommandBuffer commandBuffer,
+                VkImage srcImage,
+                VkImageLayout srcImageLayout,
+                VkImage dstImage,
+                VkImageLayout dstImageLayout,
+                uint32_t regionCount,
+                const VkImageResolve* pRegions);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdSetEvent(
+                VkCommandBuffer commandBuffer,
+                VkEvent event,
+                VkPipelineStageFlags stageMask);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdResetEvent(
+                VkCommandBuffer commandBuffer,
+                VkEvent event,
+                VkPipelineStageFlags stageMask);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdWaitEvents(
+                VkCommandBuffer commandBuffer,
+                uint32_t eventCount,
+                const VkEvent* pEvents,
+                VkPipelineStageFlags srcStageMask,
+                VkPipelineStageFlags dstStageMask,
+                uint32_t memoryBarrierCount,
+                const VkMemoryBarrier* pMemoryBarriers,
+                uint32_t bufferMemoryBarrierCount,
+                const VkBufferMemoryBarrier* pBufferMemoryBarriers,
+                uint32_t imageMemoryBarrierCount,
+                const VkImageMemoryBarrier* pImageMemoryBarriers);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdPipelineBarrier(
+                VkCommandBuffer commandBuffer,
+                VkPipelineStageFlags srcStageMask,
+                VkPipelineStageFlags dstStageMask,
+                VkDependencyFlags dependencyFlags,
+                uint32_t memoryBarrierCount,
+                const VkMemoryBarrier* pMemoryBarriers,
+                uint32_t bufferMemoryBarrierCount,
+                const VkBufferMemoryBarrier* pBufferMemoryBarriers,
+                uint32_t imageMemoryBarrierCount,
+                const VkImageMemoryBarrier* pImageMemoryBarriers);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdBeginQuery(
+                VkCommandBuffer commandBuffer,
+                VkQueryPool queryPool,
+                uint32_t query,
+                VkQueryControlFlags flags);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdEndQuery(
+                VkCommandBuffer commandBuffer,
+                VkQueryPool queryPool,
+                uint32_t query);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdResetQueryPool(
+                VkCommandBuffer commandBuffer,
+                VkQueryPool queryPool,
+                uint32_t firstQuery,
+                uint32_t queryCount);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdWriteTimestamp(
+                VkCommandBuffer commandBuffer,
+                VkPipelineStageFlagBits pipelineStage,
+                VkQueryPool queryPool,
+                uint32_t query);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdCopyQueryPoolResults(
+                VkCommandBuffer commandBuffer,
+                VkQueryPool queryPool,
+                uint32_t firstQuery,
+                uint32_t queryCount,
+                VkBuffer dstBuffer,
+                VkDeviceSize dstOffset,
+                VkDeviceSize stride,
+                VkQueryResultFlags flags);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdPushConstants(
+                VkCommandBuffer commandBuffer,
+                VkPipelineLayout layout,
+                VkShaderStageFlags stageFlags,
+                uint32_t offset,
+                uint32_t size,
+                const void* pValues);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdBeginRenderPass(
+                VkCommandBuffer commandBuffer,
+                const VkRenderPassBeginInfo* pRenderPassBegin,
+                VkSubpassContents contents);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdNextSubpass(
+                VkCommandBuffer commandBuffer,
+                VkSubpassContents contents);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdEndRenderPass(
+                VkCommandBuffer commandBuffer);
+
+        static VKAPI_ATTR void VKAPI_CALL vlk_trampoline_call_vkCmdExecuteCommands(
+                VkCommandBuffer commandBuffer,
+                uint32_t commandBufferCount,
+                const VkCommandBuffer* pCommandBuffers);
+
 
         static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vlk_trampoline_call_GetDeviceProcAddr(
                 VkDevice                                    device,

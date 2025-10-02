@@ -644,6 +644,16 @@ VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateBuffer(
 
     if (it_device == vk_context->devices.end()) return VK_ERROR_DEVICE_LOST;
 
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_instance == vk_context->instances.end()) return VK_ERROR_DEVICE_LOST;
+
+
+    auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+    auto vkCreateBuffer = (PFN_vkCreateBuffer)func(it_device->second->dispatch_handle, "vkCreateBuffer");
+
+
     /**
      * create buffer representation object
      */
@@ -651,6 +661,9 @@ VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_CreateBuffer(
     buffer->size = pCreateInfo->size;
     buffer->usage = pCreateInfo->usage;
     buffer->sharingMode = pCreateInfo->sharingMode;
+
+    vkCreateBuffer(it_device->second->dispatch_handle, pCreateInfo, pAllocator, &buffer->dispatch_handle);
+
 
     auto id = it_device->second->buffer_handler_id++;
     VkBuffer handle = reinterpret_cast<VkBuffer>(id);
@@ -668,7 +681,18 @@ VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyBuffer
                  "vlk_trampoline_call_DestroyBuffer called >>");
 
     auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
-    if (it_device != vk_context->devices.end()) {
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()){
+
+        auto it_buffer = it_device->second->buffers.find(buffer);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyBuffer = (PFN_vkDestroyBuffer)func(it_device->second->dispatch_handle, "vkDestroyBuffer");
+
+        vkDestroyBuffer(it_device->second->dispatch_handle, it_buffer->second->dispatch_handle, pAllocator);
+
         it_device->second->buffers.erase(buffer);
     }
 }
@@ -712,15 +736,25 @@ VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_Crea
     buff_view.range_buffer = pCreateInfo->range;
     buff_view.format = pCreateInfo->format;
 
-    buff_view.handle = pCreateInfo->buffer;
+    buff_view.handle = it_device->second->buffers.find(pCreateInfo->buffer)->second->dispatch_handle;
 
-    auto id = it_device->second->buffer_views_handler_id++;
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
 
-    auto handle = reinterpret_cast<VkBufferView>(id);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
 
-    it_device->second->buffer_views[handle] = buff_view;
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCreateBufferView = (PFN_vkCreateBufferView) func(it_device->second->dispatch_handle,
+                                                          "vkCreateBufferView");
 
-    *pView = handle;
+        VkBufferViewCreateInfo mod_info = *pCreateInfo;
+
+        mod_info.buffer = buff_view.handle;
+        vkCreateBufferView(it_device->second->dispatch_handle, &mod_info, pAllocator, pView);
+
+    }
+
+    it_device->second->buffer_views[*pView] = buff_view;
 
     return VK_SUCCESS;
 }
@@ -736,9 +770,20 @@ void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyB
      * get device object from handle
      */
     auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
 
-    if (it_device != vk_context->devices.end()) {
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkDestroyBufferView = (PFN_vkDestroyBufferView) func(it_device->second->dispatch_handle,
+                                                                "vkDestroyBufferView");
+
+
+        vkDestroyBufferView(it_device->second->dispatch_handle, bufferView, pAllocator);
+
         it_device->second->buffer_views.erase(bufferView);
+
     }
 }
 
@@ -867,7 +912,7 @@ VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyImage(
     auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
     auto it_real_image_handle = it_device->second->chain_images.find(image);
 
-    if (it_device == vk_context->devices.end() && it_instance == vk_context->instances.end()) {
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
         auto func = (PFN_vkGetDeviceProcAddr) vk_context->GetInstanceProcAddr(
                 it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
         auto vkDestroyImage = (PFN_vkDestroyImage) func(
@@ -878,11 +923,10 @@ VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_DestroyImage(
         if(func) {
             vkDestroyImage(it_device->second->dispatch_handle, it_real_image_handle->second->dispatch_handle, pAllocator);
         }
-    }
 
-    if (it_device != vk_context->devices.end()) {
         it_device->second->chain_images.erase(image);
     }
+
 }
 
 VkResult
@@ -2324,6 +2368,830 @@ VkResult VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_Rese
     return ret;
 }
 
+VKAPI_ATTR VkResult VKAPI_CALL
+VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_AllocateCommandBuffers(
+        VkDevice device,
+        const VkCommandBufferAllocateInfo* pAllocateInfo,
+        VkCommandBuffer* pCommandBuffers)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_AllocateCommandBuffers called >>");
+
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkAllocateCommandBuffers = (PFN_vkAllocateCommandBuffers)func(
+                it_device->second->dispatch_handle, "vkAllocateCommandBuffers");
+
+        if (vkAllocateCommandBuffers)
+            ret = vkAllocateCommandBuffers(
+                    it_device->second->dispatch_handle, pAllocateInfo, pCommandBuffers);
+    }
+    return ret;
+}
+
+VKAPI_ATTR void VKAPI_CALL
+VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_FreeCommandBuffers(
+        VkDevice device,
+        VkCommandPool commandPool,
+        uint32_t commandBufferCount,
+        const VkCommandBuffer* pCommandBuffers)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_FreeCommandBuffers called >>");
+
+    auto it_device = vk_context->devices.find(reinterpret_cast<uint64_t>(device));
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkFreeCommandBuffers = (PFN_vkFreeCommandBuffers)func(
+                it_device->second->dispatch_handle, "vkFreeCommandBuffers");
+
+        if (vkFreeCommandBuffers)
+            vkFreeCommandBuffers(
+                    it_device->second->dispatch_handle, commandPool, commandBufferCount, pCommandBuffers);
+    }
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_BeginCommandBuffer(
+        VkCommandBuffer commandBuffer,
+        const VkCommandBufferBeginInfo* pBeginInfo)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_BeginCommandBuffer called >>");
+
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+    auto it_device = vk_context->devices.begin();
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkBeginCommandBuffer = (PFN_vkBeginCommandBuffer)func(
+                it_device->second->dispatch_handle, "vkBeginCommandBuffer");
+
+        if (vkBeginCommandBuffer)
+            ret = vkBeginCommandBuffer(commandBuffer, pBeginInfo);
+    }
+    return ret;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_EndCommandBuffer(
+        VkCommandBuffer commandBuffer)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_EndCommandBuffer called >>");
+
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+    auto it_device = vk_context->devices.begin();
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkEndCommandBuffer = (PFN_vkEndCommandBuffer)func(
+                it_device->second->dispatch_handle, "vkEndCommandBuffer");
+
+        if (vkEndCommandBuffer)
+            ret = vkEndCommandBuffer(commandBuffer);
+    }
+    return ret;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_ResetCommandBuffer(
+        VkCommandBuffer commandBuffer,
+        VkCommandBufferResetFlags flags)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT,
+                 "vlk_trampoline_call_ResetCommandBuffer called >>");
+
+    VkResult ret{VK_ERROR_DEVICE_LOST};
+    auto it_device = vk_context->devices.begin();
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkResetCommandBuffer = (PFN_vkResetCommandBuffer)func(
+                it_device->second->dispatch_handle, "vkResetCommandBuffer");
+
+        if (vkResetCommandBuffer)
+            ret = vkResetCommandBuffer(commandBuffer, flags);
+    }
+    return ret;
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdBindPipeline(
+        VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdBindPipeline called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdBindPipeline = (PFN_vkCmdBindPipeline)func(it_device->second->dispatch_handle, "vkCmdBindPipeline");
+        if (vkCmdBindPipeline) vkCmdBindPipeline(commandBuffer, pipelineBindPoint, pipeline);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdSetViewport(
+        VkCommandBuffer commandBuffer, uint32_t firstViewport, uint32_t viewportCount, const VkViewport* pViewports)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdSetViewport called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdSetViewport = (PFN_vkCmdSetViewport)func(it_device->second->dispatch_handle, "vkCmdSetViewport");
+        if (vkCmdSetViewport) vkCmdSetViewport(commandBuffer, firstViewport, viewportCount, pViewports);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdSetScissor(
+        VkCommandBuffer commandBuffer, uint32_t firstScissor, uint32_t scissorCount, const VkRect2D* pScissors)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdSetScissor called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdSetScissor = (PFN_vkCmdSetScissor)func(it_device->second->dispatch_handle, "vkCmdSetScissor");
+        if (vkCmdSetScissor) vkCmdSetScissor(commandBuffer, firstScissor, scissorCount, pScissors);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdSetLineWidth(
+        VkCommandBuffer commandBuffer, float lineWidth)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdSetLineWidth called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdSetLineWidth = (PFN_vkCmdSetLineWidth)func(it_device->second->dispatch_handle, "vkCmdSetLineWidth");
+        if (vkCmdSetLineWidth) vkCmdSetLineWidth(commandBuffer, lineWidth);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdSetDepthBias(
+        VkCommandBuffer commandBuffer, float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdSetDepthBias called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdSetDepthBias = (PFN_vkCmdSetDepthBias)func(it_device->second->dispatch_handle, "vkCmdSetDepthBias");
+        if (vkCmdSetDepthBias) vkCmdSetDepthBias(commandBuffer, depthBiasConstantFactor, depthBiasClamp, depthBiasSlopeFactor);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdSetBlendConstants(
+        VkCommandBuffer commandBuffer, const float blendConstants[4])
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdSetBlendConstants called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdSetBlendConstants = (PFN_vkCmdSetBlendConstants)func(it_device->second->dispatch_handle, "vkCmdSetBlendConstants");
+        if (vkCmdSetBlendConstants) vkCmdSetBlendConstants(commandBuffer, blendConstants);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdSetDepthBounds(
+        VkCommandBuffer commandBuffer, float minDepthBounds, float maxDepthBounds)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdSetDepthBounds called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdSetDepthBounds = (PFN_vkCmdSetDepthBounds)func(it_device->second->dispatch_handle, "vkCmdSetDepthBounds");
+        if (vkCmdSetDepthBounds) vkCmdSetDepthBounds(commandBuffer, minDepthBounds, maxDepthBounds);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdSetStencilCompareMask(
+        VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t compareMask)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdSetStencilCompareMask called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdSetStencilCompareMask = (PFN_vkCmdSetStencilCompareMask)func(it_device->second->dispatch_handle, "vkCmdSetStencilCompareMask");
+        if (vkCmdSetStencilCompareMask) vkCmdSetStencilCompareMask(commandBuffer, faceMask, compareMask);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdSetStencilWriteMask(
+        VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t writeMask)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdSetStencilWriteMask called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdSetStencilWriteMask = (PFN_vkCmdSetStencilWriteMask)func(it_device->second->dispatch_handle, "vkCmdSetStencilWriteMask");
+        if (vkCmdSetStencilWriteMask) vkCmdSetStencilWriteMask(commandBuffer, faceMask, writeMask);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdSetStencilReference(
+        VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t reference)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdSetStencilReference called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdSetStencilReference = (PFN_vkCmdSetStencilReference)func(it_device->second->dispatch_handle, "vkCmdSetStencilReference");
+        if (vkCmdSetStencilReference) vkCmdSetStencilReference(commandBuffer, faceMask, reference);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdBindDescriptorSets(
+        VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t firstSet,
+        uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets, uint32_t dynamicOffsetCount,
+        const uint32_t* pDynamicOffsets)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdBindDescriptorSets called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdBindDescriptorSets = (PFN_vkCmdBindDescriptorSets)func(it_device->second->dispatch_handle, "vkCmdBindDescriptorSets");
+        if (vkCmdBindDescriptorSets) vkCmdBindDescriptorSets(commandBuffer, pipelineBindPoint, layout, firstSet, descriptorSetCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
+    }
+}
+
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdBindIndexBuffer(
+        VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdBindIndexBuffer called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto it_buffer = it_device->second->buffers.find(buffer);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdBindIndexBuffer = (PFN_vkCmdBindIndexBuffer)func(it_device->second->dispatch_handle, "vkCmdBindIndexBuffer");
+        if (vkCmdBindIndexBuffer) vkCmdBindIndexBuffer(commandBuffer, it_buffer->second->dispatch_handle, offset, indexType);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdBindVertexBuffers(
+        VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount,
+        const VkBuffer* pBuffers, const VkDeviceSize* pOffsets)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdBindVertexBuffers called >>");
+
+
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    std::vector<VkBuffer> real_buffers_handle;
+
+
+    for (int i = 0; i < bindingCount; i++) {
+        const auto& buff = pBuffers[i];
+
+        auto it_buffer = it_device->second->buffers.find(buff);
+
+        real_buffers_handle.emplace_back(it_buffer->second->dispatch_handle);
+    }
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdBindVertexBuffers = (PFN_vkCmdBindVertexBuffers)func(it_device->second->dispatch_handle, "vkCmdBindVertexBuffers");
+        if (vkCmdBindVertexBuffers) vkCmdBindVertexBuffers(commandBuffer, firstBinding, bindingCount, real_buffers_handle.data(), pOffsets);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdDraw(
+        VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount,
+        uint32_t firstVertex, uint32_t firstInstance)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdDraw called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdDraw = (PFN_vkCmdDraw)func(it_device->second->dispatch_handle, "vkCmdDraw");
+        if (vkCmdDraw) vkCmdDraw(commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdDrawIndexed(
+        VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount,
+        uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdDrawIndexed called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdDrawIndexed = (PFN_vkCmdDrawIndexed)func(it_device->second->dispatch_handle, "vkCmdDrawIndexed");
+        if (vkCmdDrawIndexed) vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdDrawIndirect(
+        VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdDrawIndirect called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    auto it_buffer = it_device->second->buffers.find(buffer);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdDrawIndirect = (PFN_vkCmdDrawIndirect)func(it_device->second->dispatch_handle, "vkCmdDrawIndirect");
+        if (vkCmdDrawIndirect) vkCmdDrawIndirect(commandBuffer, it_buffer->second->dispatch_handle, offset, drawCount, stride);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdDrawIndexedIndirect(
+        VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdDrawIndexedIndirect called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    auto it_buffer = it_device->second->buffers.find(buffer);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdDrawIndexedIndirect = (PFN_vkCmdDrawIndexedIndirect)func(it_device->second->dispatch_handle, "vkCmdDrawIndexedIndirect");
+        if (vkCmdDrawIndexedIndirect) vkCmdDrawIndexedIndirect(commandBuffer, it_buffer->second->dispatch_handle, offset, drawCount, stride);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdDispatch(
+        VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdDispatch called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdDispatch = (PFN_vkCmdDispatch)func(it_device->second->dispatch_handle, "vkCmdDispatch");
+        if (vkCmdDispatch) vkCmdDispatch(commandBuffer, groupCountX, groupCountY, groupCountZ);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdDispatchIndirect(
+        VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdDispatchIndirect called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto it_buffer = it_device->second->buffers.find(buffer);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdDispatchIndirect = (PFN_vkCmdDispatchIndirect)func(it_device->second->dispatch_handle, "vkCmdDispatchIndirect");
+        if (vkCmdDispatchIndirect) vkCmdDispatchIndirect(commandBuffer, it_buffer->second->dispatch_handle, offset);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdCopyBuffer(
+        VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer,
+        uint32_t regionCount, const VkBufferCopy* pRegions)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdCopyBuffer called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto it_buffer_dst = it_device->second->buffers.find(dstBuffer);
+        auto it_buffer_src = it_device->second->buffers.find(srcBuffer);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdCopyBuffer = (PFN_vkCmdCopyBuffer)func(it_device->second->dispatch_handle, "vkCmdCopyBuffer");
+        if (vkCmdCopyBuffer) vkCmdCopyBuffer(commandBuffer, it_buffer_src->second->dispatch_handle, it_buffer_dst->second->dispatch_handle, regionCount, pRegions);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdCopyImage(
+        VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout,
+        VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount,
+        const VkImageCopy* pRegions)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdCopyImage called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto it_src_image = it_device->second->chain_images.find(srcImage);
+        auto it_dst_image = it_device->second->chain_images.find(dstImage);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdCopyImage = (PFN_vkCmdCopyImage)func(it_device->second->dispatch_handle, "vkCmdCopyImage");
+        if (vkCmdCopyImage) vkCmdCopyImage(commandBuffer, it_src_image->second->dispatch_handle, srcImageLayout, it_dst_image->second->dispatch_handle, dstImageLayout, regionCount, pRegions);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdBlitImage(
+        VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout,
+        VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount,
+        const VkImageBlit* pRegions, VkFilter filter)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdBlitImage called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto it_src_image = it_device->second->chain_images.find(srcImage);
+        auto it_dst_image = it_device->second->chain_images.find(dstImage);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdBlitImage = (PFN_vkCmdBlitImage)func(it_device->second->dispatch_handle, "vkCmdBlitImage");
+        if (vkCmdBlitImage) vkCmdBlitImage(commandBuffer, it_src_image->second->dispatch_handle, srcImageLayout, it_dst_image->second->dispatch_handle, dstImageLayout, regionCount, pRegions, filter);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdCopyBufferToImage(
+        VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage,
+        VkImageLayout dstImageLayout, uint32_t regionCount,
+        const VkBufferImageCopy* pRegions)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdCopyBufferToImage called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto it_src_buffer = it_device->second->buffers.find(srcBuffer);
+        auto it_dst_image = it_device->second->chain_images.find(dstImage);
+
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdCopyBufferToImage = (PFN_vkCmdCopyBufferToImage)func(it_device->second->dispatch_handle, "vkCmdCopyBufferToImage");
+        if (vkCmdCopyBufferToImage) vkCmdCopyBufferToImage(commandBuffer, it_src_buffer->second->dispatch_handle, it_dst_image->second->dispatch_handle, dstImageLayout, regionCount, pRegions);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdCopyImageToBuffer(
+        VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout,
+        VkBuffer dstBuffer, uint32_t regionCount, const VkBufferImageCopy* pRegions)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdCopyImageToBuffer called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto it_dst_buffer = it_device->second->buffers.find(dstBuffer);
+        auto it_src_image = it_device->second->chain_images.find(srcImage);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdCopyImageToBuffer = (PFN_vkCmdCopyImageToBuffer)func(it_device->second->dispatch_handle, "vkCmdCopyImageToBuffer");
+        if (vkCmdCopyImageToBuffer) vkCmdCopyImageToBuffer(commandBuffer, it_src_image->second->dispatch_handle, srcImageLayout, it_dst_buffer->second->dispatch_handle, regionCount, pRegions);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdUpdateBuffer(
+        VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset,
+        VkDeviceSize dataSize, const void* pData)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdUpdateBuffer called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto it_dst_buffer = it_device->second->buffers.find(dstBuffer);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdUpdateBuffer = (PFN_vkCmdUpdateBuffer)func(it_device->second->dispatch_handle, "vkCmdUpdateBuffer");
+        if (vkCmdUpdateBuffer) vkCmdUpdateBuffer(commandBuffer, it_dst_buffer->second->dispatch_handle, dstOffset, dataSize, pData);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdFillBuffer(
+        VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset,
+        VkDeviceSize size, uint32_t data)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdFillBuffer called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto it_dst_buffer = it_device->second->buffers.find(dstBuffer);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdFillBuffer = (PFN_vkCmdFillBuffer)func(it_device->second->dispatch_handle, "vkCmdFillBuffer");
+        if (vkCmdFillBuffer) vkCmdFillBuffer(commandBuffer, it_dst_buffer->second->dispatch_handle, dstOffset, size, data);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdClearColorImage(
+        VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout,
+        const VkClearColorValue* pColor, uint32_t rangeCount,
+        const VkImageSubresourceRange* pRanges)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdClearColorImage called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto it_image = it_device->second->chain_images.find(image);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdClearColorImage = (PFN_vkCmdClearColorImage)func(it_device->second->dispatch_handle, "vkCmdClearColorImage");
+        if (vkCmdClearColorImage) vkCmdClearColorImage(commandBuffer, it_image->second->dispatch_handle, imageLayout, pColor, rangeCount, pRanges);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdClearDepthStencilImage(
+        VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout,
+        const VkClearDepthStencilValue* pDepthStencil, uint32_t rangeCount,
+        const VkImageSubresourceRange* pRanges)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdClearDepthStencilImage called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto it_image = it_device->second->chain_images.find(image);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdClearDepthStencilImage = (PFN_vkCmdClearDepthStencilImage)func(it_device->second->dispatch_handle, "vkCmdClearDepthStencilImage");
+        if (vkCmdClearDepthStencilImage) vkCmdClearDepthStencilImage(commandBuffer, it_image->second->dispatch_handle, imageLayout, pDepthStencil, rangeCount, pRanges);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdClearAttachments(
+        VkCommandBuffer commandBuffer, uint32_t attachmentCount,
+        const VkClearAttachment* pAttachments, uint32_t rectCount,
+        const VkClearRect* pRects)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdClearAttachments called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdClearAttachments = (PFN_vkCmdClearAttachments)func(it_device->second->dispatch_handle, "vkCmdClearAttachments");
+        if (vkCmdClearAttachments) vkCmdClearAttachments(commandBuffer, attachmentCount, pAttachments, rectCount, pRects);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdResolveImage(
+        VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout,
+        VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount,
+        const VkImageResolve* pRegions)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdResolveImage called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+
+        auto it_src_image = it_device->second->chain_images.find(srcImage);
+        auto it_dst_image = it_device->second->chain_images.find(dstImage);
+
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdResolveImage = (PFN_vkCmdResolveImage)func(it_device->second->dispatch_handle, "vkCmdResolveImage");
+        if (vkCmdResolveImage) vkCmdResolveImage(commandBuffer, it_src_image->second->dispatch_handle, srcImageLayout, it_dst_image->second->dispatch_handle, dstImageLayout, regionCount, pRegions);
+    }
+}
+
+
+// todo :
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdSetEvent(
+        VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdSetEvent called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdSetEvent = (PFN_vkCmdSetEvent)func(it_device->second->dispatch_handle, "vkCmdSetEvent");
+        if (vkCmdSetEvent) vkCmdSetEvent(commandBuffer, event, stageMask);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdResetEvent(
+        VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdResetEvent called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdResetEvent = (PFN_vkCmdResetEvent)func(it_device->second->dispatch_handle, "vkCmdResetEvent");
+        if (vkCmdResetEvent) vkCmdResetEvent(commandBuffer, event, stageMask);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdWaitEvents(
+        VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents,
+        VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
+        uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers,
+        uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers,
+        uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdWaitEvents called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdWaitEvents = (PFN_vkCmdWaitEvents)func(it_device->second->dispatch_handle, "vkCmdWaitEvents");
+        if (vkCmdWaitEvents) vkCmdWaitEvents(commandBuffer, eventCount, pEvents,
+                                             srcStageMask, dstStageMask,
+                                             memoryBarrierCount, pMemoryBarriers,
+                                             bufferMemoryBarrierCount, pBufferMemoryBarriers,
+                                             imageMemoryBarrierCount, pImageMemoryBarriers);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdPipelineBarrier(
+        VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask,
+        VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags,
+        uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers,
+        uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers,
+        uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdPipelineBarrier called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdPipelineBarrier = (PFN_vkCmdPipelineBarrier)func(it_device->second->dispatch_handle, "vkCmdPipelineBarrier");
+        if (vkCmdPipelineBarrier) vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, dependencyFlags,
+                                                       memoryBarrierCount, pMemoryBarriers,
+                                                       bufferMemoryBarrierCount, pBufferMemoryBarriers,
+                                                       imageMemoryBarrierCount, pImageMemoryBarriers);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdBeginQuery(
+        VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdBeginQuery called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdBeginQuery = (PFN_vkCmdBeginQuery)func(it_device->second->dispatch_handle, "vkCmdBeginQuery");
+        if (vkCmdBeginQuery) vkCmdBeginQuery(commandBuffer, queryPool, query, flags);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdEndQuery(
+        VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdEndQuery called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdEndQuery = (PFN_vkCmdEndQuery)func(it_device->second->dispatch_handle, "vkCmdEndQuery");
+        if (vkCmdEndQuery) vkCmdEndQuery(commandBuffer, queryPool, query);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdResetQueryPool(
+        VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdResetQueryPool called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdResetQueryPool = (PFN_vkCmdResetQueryPool)func(it_device->second->dispatch_handle, "vkCmdResetQueryPool");
+        if (vkCmdResetQueryPool) vkCmdResetQueryPool(commandBuffer, queryPool, firstQuery, queryCount);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdWriteTimestamp(
+        VkCommandBuffer commandBuffer, VkPipelineStageFlagBits pipelineStage,
+        VkQueryPool queryPool, uint32_t query)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdWriteTimestamp called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdWriteTimestamp = (PFN_vkCmdWriteTimestamp)func(it_device->second->dispatch_handle, "vkCmdWriteTimestamp");
+        if (vkCmdWriteTimestamp) vkCmdWriteTimestamp(commandBuffer, pipelineStage, queryPool, query);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdCopyQueryPoolResults(
+        VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery,
+        uint32_t queryCount, VkBuffer dstBuffer, VkDeviceSize dstOffset,
+        VkDeviceSize stride, VkQueryResultFlags flags)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdCopyQueryPoolResults called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdCopyQueryPoolResults = (PFN_vkCmdCopyQueryPoolResults)func(it_device->second->dispatch_handle, "vkCmdCopyQueryPoolResults");
+        if (vkCmdCopyQueryPoolResults) vkCmdCopyQueryPoolResults(commandBuffer, queryPool, firstQuery, queryCount, dstBuffer, dstOffset, stride, flags);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdPushConstants(
+        VkCommandBuffer commandBuffer, VkPipelineLayout layout, VkShaderStageFlags stageFlags,
+        uint32_t offset, uint32_t size, const void* pValues)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdPushConstants called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdPushConstants = (PFN_vkCmdPushConstants)func(it_device->second->dispatch_handle, "vkCmdPushConstants");
+        if (vkCmdPushConstants) vkCmdPushConstants(commandBuffer, layout, stageFlags, offset, size, pValues);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdBeginRenderPass(
+        VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin,
+        VkSubpassContents contents)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdBeginRenderPass called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdBeginRenderPass = (PFN_vkCmdBeginRenderPass)func(it_device->second->dispatch_handle, "vkCmdBeginRenderPass");
+        if (vkCmdBeginRenderPass) vkCmdBeginRenderPass(commandBuffer, pRenderPassBegin, contents);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdNextSubpass(
+        VkCommandBuffer commandBuffer, VkSubpassContents contents)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdNextSubpass called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdNextSubpass = (PFN_vkCmdNextSubpass)func(it_device->second->dispatch_handle, "vkCmdNextSubpass");
+        if (vkCmdNextSubpass) vkCmdNextSubpass(commandBuffer, contents);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdEndRenderPass(
+        VkCommandBuffer commandBuffer)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdEndRenderPass called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdEndRenderPass = (PFN_vkCmdEndRenderPass)func(it_device->second->dispatch_handle, "vkCmdEndRenderPass");
+        if (vkCmdEndRenderPass) vkCmdEndRenderPass(commandBuffer);
+    }
+}
+
+void VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_vkCmdExecuteCommands(
+        VkCommandBuffer commandBuffer, uint32_t commandBufferCount,
+        const VkCommandBuffer* pCommandBuffers)
+{
+    Log::VLK_LOG(Log::Level::INFO, Log::LevelType::CONTEXT, "vlk_trampoline_call_vkCmdExecuteCommands called >>");
+    auto it_device = vk_context->devices.find(VulkanContext::VkDeviceObject::device_magic);
+    auto it_instance = vk_context->instances.find(VulkanContext::VkInstanceObject::instance_magic);
+    if (it_device != vk_context->devices.end() && it_instance != vk_context->instances.end()) {
+        auto func = (PFN_vkGetDeviceProcAddr)vk_context->GetInstanceProcAddr(
+                it_instance->second->dispatch_handle, "vkGetDeviceProcAddr");
+        auto vkCmdExecuteCommands = (PFN_vkCmdExecuteCommands)func(it_device->second->dispatch_handle, "vkCmdExecuteCommands");
+        if (vkCmdExecuteCommands) vkCmdExecuteCommands(commandBuffer, commandBufferCount, pCommandBuffers);
+    }
+}
 
 PFN_vkVoidFunction
 VulkanDispatcher::Device::DeviceDispatchTable::vlk_trampoline_call_GetDeviceProcAddr(
@@ -2489,6 +3357,64 @@ bool VulkanDispatcher::Device::DeviceDispatchTable::factory() {
     state = registerTrampoline("vkCreateCommandPool", vlk_trampoline_call_CreateCommandPool);
     state = registerTrampoline("vkDestroyCommandPool", vlk_trampoline_call_DestroyCommandPool);
     state = registerTrampoline("vkResetCommandPool", vlk_trampoline_call_ResetCommandPool);
+
+    /**
+     * command buffers
+     */
+    state = registerTrampoline("vkAllocateCommandBuffers", vlk_trampoline_call_AllocateCommandBuffers);
+    state = registerTrampoline("vkFreeCommandBuffers", vlk_trampoline_call_FreeCommandBuffers);
+    state = registerTrampoline("vkBeginCommandBuffer", vlk_trampoline_call_BeginCommandBuffer);
+    state = registerTrampoline("vkEndCommandBuffer", vlk_trampoline_call_EndCommandBuffer);
+    state = registerTrampoline("vkResetCommandBuffer", vlk_trampoline_call_ResetCommandBuffer);
+
+    /**
+     * command buffer recording functions
+     */
+    state = registerTrampoline("vkCmdBindPipeline", vlk_trampoline_call_vkCmdBindPipeline);
+    state = registerTrampoline("vkCmdSetViewport", vlk_trampoline_call_vkCmdSetViewport);
+    state = registerTrampoline("vkCmdSetScissor", vlk_trampoline_call_vkCmdSetScissor);
+    state = registerTrampoline("vkCmdSetLineWidth", vlk_trampoline_call_vkCmdSetLineWidth);
+    state = registerTrampoline("vkCmdSetDepthBias", vlk_trampoline_call_vkCmdSetDepthBias);
+    state = registerTrampoline("vkCmdSetBlendConstants", vlk_trampoline_call_vkCmdSetBlendConstants);
+    state = registerTrampoline("vkCmdSetDepthBounds", vlk_trampoline_call_vkCmdSetDepthBounds);
+    state = registerTrampoline("vkCmdSetStencilCompareMask", vlk_trampoline_call_vkCmdSetStencilCompareMask);
+    state = registerTrampoline("vkCmdSetStencilWriteMask", vlk_trampoline_call_vkCmdSetStencilWriteMask);
+    state = registerTrampoline("vkCmdSetStencilReference", vlk_trampoline_call_vkCmdSetStencilReference);
+    state = registerTrampoline("vkCmdBindDescriptorSets", vlk_trampoline_call_vkCmdBindDescriptorSets);
+    state = registerTrampoline("vkCmdBindIndexBuffer", vlk_trampoline_call_vkCmdBindIndexBuffer);
+    state = registerTrampoline("vkCmdBindVertexBuffers", vlk_trampoline_call_vkCmdBindVertexBuffers);
+    state = registerTrampoline("vkCmdDraw", vlk_trampoline_call_vkCmdDraw);
+    state = registerTrampoline("vkCmdDrawIndexed", vlk_trampoline_call_vkCmdDrawIndexed);
+    state = registerTrampoline("vkCmdDrawIndirect", vlk_trampoline_call_vkCmdDrawIndirect);
+    state = registerTrampoline("vkCmdDrawIndexedIndirect", vlk_trampoline_call_vkCmdDrawIndexedIndirect);
+    state = registerTrampoline("vkCmdDispatch", vlk_trampoline_call_vkCmdDispatch);
+    state = registerTrampoline("vkCmdDispatchIndirect", vlk_trampoline_call_vkCmdDispatchIndirect);
+    state = registerTrampoline("vkCmdCopyBuffer", vlk_trampoline_call_vkCmdCopyBuffer);
+    state = registerTrampoline("vkCmdCopyImage", vlk_trampoline_call_vkCmdCopyImage);
+    state = registerTrampoline("vkCmdBlitImage", vlk_trampoline_call_vkCmdBlitImage);
+    state = registerTrampoline("vkCmdCopyBufferToImage", vlk_trampoline_call_vkCmdCopyBufferToImage);
+    state = registerTrampoline("vkCmdCopyImageToBuffer", vlk_trampoline_call_vkCmdCopyImageToBuffer);
+    state = registerTrampoline("vkCmdUpdateBuffer", vlk_trampoline_call_vkCmdUpdateBuffer);
+    state = registerTrampoline("vkCmdFillBuffer", vlk_trampoline_call_vkCmdFillBuffer);
+    state = registerTrampoline("vkCmdClearColorImage", vlk_trampoline_call_vkCmdClearColorImage);
+    state = registerTrampoline("vkCmdClearDepthStencilImage", vlk_trampoline_call_vkCmdClearDepthStencilImage);
+    state = registerTrampoline("vkCmdClearAttachments", vlk_trampoline_call_vkCmdClearAttachments);
+    state = registerTrampoline("vkCmdResolveImage", vlk_trampoline_call_vkCmdResolveImage);
+    state = registerTrampoline("vkCmdSetEvent", vlk_trampoline_call_vkCmdSetEvent);
+    state = registerTrampoline("vkCmdResetEvent", vlk_trampoline_call_vkCmdResetEvent);
+    state = registerTrampoline("vkCmdWaitEvents", vlk_trampoline_call_vkCmdWaitEvents);
+    state = registerTrampoline("vkCmdPipelineBarrier", vlk_trampoline_call_vkCmdPipelineBarrier);
+    state = registerTrampoline("vkCmdBeginQuery", vlk_trampoline_call_vkCmdBeginQuery);
+    state = registerTrampoline("vkCmdEndQuery", vlk_trampoline_call_vkCmdEndQuery);
+    state = registerTrampoline("vkCmdResetQueryPool", vlk_trampoline_call_vkCmdResetQueryPool);
+    state = registerTrampoline("vkCmdWriteTimestamp", vlk_trampoline_call_vkCmdWriteTimestamp);
+    state = registerTrampoline("vkCmdCopyQueryPoolResults", vlk_trampoline_call_vkCmdCopyQueryPoolResults);
+    state = registerTrampoline("vkCmdPushConstants", vlk_trampoline_call_vkCmdPushConstants);
+    state = registerTrampoline("vkCmdBeginRenderPass", vlk_trampoline_call_vkCmdBeginRenderPass);
+    state = registerTrampoline("vkCmdNextSubpass", vlk_trampoline_call_vkCmdNextSubpass);
+    state = registerTrampoline("vkCmdEndRenderPass", vlk_trampoline_call_vkCmdEndRenderPass);
+    state = registerTrampoline("vkCmdExecuteCommands", vlk_trampoline_call_vkCmdExecuteCommands);
+
 
     /**
      * core
